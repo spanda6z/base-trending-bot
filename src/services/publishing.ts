@@ -45,7 +45,7 @@ export async function publishTrendingToChannel(): Promise<{
       const sent = await bot.telegram.sendMessage(channelId, organicMsg, {
         parse_mode: "Markdown",
         disable_web_page_preview: true,
-      });
+      } as any);
       await db.insert(publishedPosts).values({
         channelId,
         messageId: sent.message_id,
