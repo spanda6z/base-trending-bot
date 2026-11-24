@@ -14,7 +14,6 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "test": "vitest run",
-    "webhook:set": "tsx scripts/set-webhook.ts",
     "seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
