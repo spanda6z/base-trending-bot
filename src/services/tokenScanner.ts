@@ -82,8 +82,8 @@ export async function scanToken(rawAddress: string): Promise<TokenScanResult> {
     try {
       const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${address}`);
       if (res.ok) {
-        const data = await res.json();
-        const pairs = data?.pairs as any[] | undefined;
+        const data = (await res.json()) as { pairs?: any[] };
+        const pairs = data?.pairs;
         if (pairs && pairs.length > 0) {
           const basePairs = pairs
             .filter((p) => p.chainId === "base")
