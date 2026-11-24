@@ -84,17 +84,20 @@ server.listen(port, "0.0.0.0", () => {
 
 // Telegram runs in long-polling mode. Telegraf removes any previously configured
 // webhook before polling, so no public webhook endpoint or webhook secret is used.
-const bot = getBot();
-registerHandlers(bot);
-registerAdminHandlers(bot);
-bot.catch((error) => console.error("[telegram] Update handler failed:", error));
-bot.launch({ dropPendingUpdates: false })
-  .then(() => console.log("[telegram] Bot started using long polling"))
-  .catch((error) => {
-    console.error("[telegram] Failed to start long polling:", error);
-    process.exitCode = 1;
-    server.close();
-  });
+let bot: ReturnType<typeof getBot> | null = null;
+if (!process.env.TELEGRAM_BOT_TOKEN) {
+  console.error("[telegram] TELEGRAM_BOT_TOKEN is missing; polling has not started");
+} else {
+  bot = getBot();
+  registerHandlers(bot);
+  registerAdminHandlers(bot);
+  bot.catch((error) => console.error("[telegram] Update handler failed:", error));
+  bot.launch({ dropPendingUpdates: false })
+    .then(() => console.log("[telegram] Bot started using long polling"))
+    .catch((error) => {
+      console.error("[telegram] Failed to start long polling:", error);
+    });
+}
 
 // The original Vercel cron routes are also run on this always-on Railway service.
 // Keep one app replica to avoid duplicate scheduled work.
@@ -141,7 +144,7 @@ setInterval(async () => {
 }, 60_000);
 
 function shutdown() {
-  bot.stop("SIGTERM");
+  bot?.stop("SIGTERM");
   server.close(() => process.exit(0));
 }
 process.on("SIGTERM", shutdown);
