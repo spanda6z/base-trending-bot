@@ -42,7 +42,7 @@ export async function notifyPaymentConfirmed(params: {
   try {
     await bot.telegram.sendMessage(telegramId, text, {
       disable_web_page_preview: true,
-    });
+    } as any);
   } catch (err) {
     console.error("[notify] failed to message user", telegramId, err);
   }
