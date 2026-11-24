@@ -1,4 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { getBot } from "./src/telegram/bot";
+import { registerHandlers } from "./src/telegram/handlers";
+import { registerAdminHandlers } from "./src/telegram/adminHandlers";
 
 type Handler = (req: any, res: any) => Promise<unknown> | unknown;
 
@@ -51,20 +54,15 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    if (req.method === "POST" && path === "/api/telegram/webhook") {
-      (req as any).body = await readJson(req);
-      const mod = await import("./api/telegram/webhook");
-      await invoke(mod.default as Handler, req as any, res);
-      return;
-    }
-
     if (req.method === "POST" && path === "/api/cron/maintenance") {
+      (req as any).body = await readJson(req);
       const mod = await import("./api/cron/maintenance");
       await invoke(mod.default as Handler, req as any, res);
       return;
     }
 
     if (req.method === "POST" && path === "/api/cron/payments") {
+      (req as any).body = await readJson(req);
       const mod = await import("./api/cron/payments");
       await invoke(mod.default as Handler, req as any, res);
       return;
@@ -83,6 +81,20 @@ const port = Number(process.env.PORT || 3000);
 server.listen(port, "0.0.0.0", () => {
   console.log(`Base Trending Bot listening on 0.0.0.0:${port}`);
 });
+
+// Telegram runs in long-polling mode. Telegraf removes any previously configured
+// webhook before polling, so no public webhook endpoint or webhook secret is used.
+const bot = getBot();
+registerHandlers(bot);
+registerAdminHandlers(bot);
+bot.catch((error) => console.error("[telegram] Update handler failed:", error));
+bot.launch({ dropPendingUpdates: false })
+  .then(() => console.log("[telegram] Bot started using long polling"))
+  .catch((error) => {
+    console.error("[telegram] Failed to start long polling:", error);
+    process.exitCode = 1;
+    server.close();
+  });
 
 // The original Vercel cron routes are also run on this always-on Railway service.
 // Keep one app replica to avoid duplicate scheduled work.
@@ -128,5 +140,9 @@ setInterval(async () => {
   }
 }, 60_000);
 
-process.on("SIGTERM", () => server.close(() => process.exit(0)));
-process.on("SIGINT", () => server.close(() => process.exit(0)));
+function shutdown() {
+  bot.stop("SIGTERM");
+  server.close(() => process.exit(0));
+}
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);
