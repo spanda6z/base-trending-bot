@@ -51,7 +51,7 @@ export function getPublicClient(): PublicClient {
     client = createPublicClient({
       chain: base,
       transport: http(env.BASE_RPC_URL || "https://mainnet.base.org"),
-    });
+    }) as PublicClient;
   }
-  return client;
+  return client as PublicClient;
 }
